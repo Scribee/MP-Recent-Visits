@@ -1,0 +1,54 @@
+{
+    "name": "Mountain Project Recent Visits Extensions",
+    "description": "Summarizes recent ticks in an area to help with estimating popularity or current conditions.",
+    "version": "1.0",
+    "manifest_version": 3,
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "images/icon-16.png",
+            "32": "images/icon-32.png",
+            "48": "images/icon-48.png",
+            "128": "images/icon-128.png"
+        }
+    },
+    "icons": {
+        "16": "images/icon-16.png",
+        "32": "images/icon-32.png",
+        "48": "images/icon-48.png",
+        "128": "images/icon-128.png"
+    },
+    "content_scripts": [
+        {
+            "js": [
+                "scripts/content.js"
+            ],
+            "matches": [
+                "https://www.mountainproject.com/route/*"
+            ],
+            "run_at": "document_end"
+        },
+        {
+            "js": [
+                "scripts/iframe.js"
+            ],
+            "matches": [
+                "https://www.mountainproject.com/route/stats/*"
+            ],
+            "all_frames": true,
+            "run_at": "document_end"
+        }
+    ],
+    "permissions": [
+        "tabs",
+        "offscreen",
+        "declarativeNetRequestWithHostAccess"
+    ],
+    "host_permissions": [
+        "https://www.mountainproject.com/"
+    ],
+    "background": {
+        "service_worker": "scripts/background.js",
+        "type": "module"
+    }
+}

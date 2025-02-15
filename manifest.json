@@ -24,7 +24,7 @@
                 "scripts/content.js"
             ],
             "matches": [
-                "https://www.mountainproject.com/route/*"
+                "https://www.mountainproject.com/route/1*"
             ],
             "run_at": "document_end"
         },
@@ -40,7 +40,6 @@
         }
     ],
     "permissions": [
-        "tabs",
         "offscreen",
         "declarativeNetRequestWithHostAccess"
     ],

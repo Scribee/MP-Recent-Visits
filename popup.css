@@ -1,0 +1,41 @@
+body {
+    font-size: 75%;
+    text-wrap: pretty;
+}
+
+em {
+    font-size: 100%;
+    color: gray;
+}
+
+div {
+    height: auto;
+}
+
+div#header-content {
+    display: inline-flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 515px;
+}
+
+div#body-content {
+    border: thin solid gray;
+    border-radius: 10px;
+    padding: 10px 10px 10px 10px;
+    width: 515px;
+}
+
+p {
+    white-space: pre-wrap;
+}
+
+a {
+    color: #039;
+    text-decoration: none;
+}
+
+h2 {
+    margin-block-start: 0px;
+    margin-block-end: 0px;
+}

@@ -17,22 +17,22 @@ async function handleBackgroundMessages(message, sender) {
             data: message.data.tab
         });
 
-        // Generate the text to add to the route page
-        let text = "";
+        // Generate the message text to send
+        let text = `${message.data.visits},${message.data.lastVisit},`;
 
         if (message.data.visits == -1) {
-            text = "No ticks found.";
+            text += "No ticks found.";
         }
         else if (message.data.visits == 0) {
             var lastDate = new Date(message.data.lastVisit).toLocaleDateString('en-us', {weekday:"short", year:"numeric", month:"short", day:"numeric"}) ;
-            text = `Last visit ${lastDate}.`;
+            text += `Last visit ${lastDate}.`;
         }
         else {
-            text = `${message.data.visits}  visits in the past week.`;
+            text += `${message.data.visits} visits in the last week.`;
         }
         
         // Send text to display to the content script
-        chrome.tabs.sendMessage(parseInt(message.data.tab), text);
+        chrome.tabs.sendMessage(parseInt(message.data.tab.split("-")[0]), text);
         
         return true;
     }
@@ -56,7 +56,7 @@ async function handleBackgroundMessages(message, sender) {
         chrome.runtime.sendMessage({
             type: "stats-url-request",
             target: "offscreen",
-            data: {url: message.data, tab: sender.tab.id}
+            data: {url: message.data.url, tab: sender.tab.id + "-" + message.data.index}
         });
 
         return true;

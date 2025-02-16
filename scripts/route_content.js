@@ -1,14 +1,10 @@
-if (parent !== top) {
-    console.error("content.js likely called from iframe.")
-}
-
-chrome.runtime.onMessage.addListener(handleContentMessages);
+chrome.runtime.onMessage.addListener(handleRouteContentMessages);
 
 // Get the route quality element
 const stars = document.querySelector("span#route-star-avg");
-let url = document.URL.split('/'); // generate the url for the stats of the current route
+let url = document.URL.split("/"); // generate the url for the stats of the current route
 url.splice(4, 0, "stats");
-let stats_url = url.join('/');
+let stats_url = url.join("/");
 
 // Request that the background page opens the stats page in the offscreen document
 openStatsPage(stats_url);
@@ -30,14 +26,25 @@ async function openStatsPage(path) {
     chrome.runtime.sendMessage({
         type: "send-to-offscreen-page",
         target: "background",
-        data: path
+        data: {url: path, index: 0}
     });
 }
 
 // Receive the final text from the background script
-async function handleContentMessages(message) {
+async function handleRouteContentMessages(message) {
+    if (message === "stats-request" || message === "high-level-stats-request") {
+        console.log("Route page received message for area script");
+
+        chrome.runtime.sendMessage({
+            type: "route-response",
+            target: "popup"
+        });
+
+        return false;
+    }
+
     //console.log("received message in content.js: ", message);
-    badge.textContent = message;
+    badge.textContent = message.split(",").slice(2);
 
     return true;
 }

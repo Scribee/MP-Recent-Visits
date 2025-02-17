@@ -43,6 +43,13 @@ async function handleRouteContentMessages(message) {
         return false;
     }
 
+    // Receive message from popup when the user clicks the cancel all requests button
+    if (message === "cancel") {
+        badge.textContent = "";
+
+        return true;
+    }
+
     //console.log("received message in content.js: ", message);
     badge.textContent = message.split(",").slice(2);
 

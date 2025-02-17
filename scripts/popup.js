@@ -1,12 +1,13 @@
 chrome.runtime.onMessage.addListener(handlePopupMessages);
 
-let area = "";
-
 // Create button element to display when confirmation is needed
 const button = document.createElement("button");
 button.textContent = "Continue";
 button.id = "continue-button";
 button.addEventListener("click", confirmRequest);
+
+const closeImg = document.querySelector("img#close-img");
+closeImg.addEventListener("click", closeOffscreenDocument);
 
 const tip = document.querySelector("div#body-content span p"); // element to display important messages
 
@@ -28,25 +29,36 @@ async function handlePopupMessages(message) {
 
     // Message from area_content that the child routes have been opened in the offscreen page
     if (message.type === "area-request-header") {
-        area = message.data.area;
-        tip.innerHTML = `Fetching recent ticks for all ${message.data.routes} ${area} routes. When complete, the number of visits in the last week will be displayed under the area name.`;
+        tip.innerHTML = `Fetching recent ticks for all ${message.data.routes} ${message.data.area} routes. When complete, the number of visits in the last week will be displayed under the area name.`;
         return true;
     }
 
     // Message from area_content warning that the area is a high level area
     if (message.type === "area-warn") {
-        area = message.data.area;
-        console.log("Popup message received. Area name:", area, " Routes:", message.data.routes);
+        let area = message.data.area;
+        console.log("Popup warning received. Area name:", area, " Routes:", message.data.routes);
 
+        if (message.data.routes > 300) {
+            tip.textContent = "This area has too many routes to check. Please try again on the pages for the specific sub areas you're interested in.";
+            return false;
+        }
+
+        // Do not require confirmation for high level areas with relatively few routes
+        if (message.data.routes <= 50) {
+            tip.innerHTML = `Fetching recent ticks for all ${message.data.routes} ${message.data.area} routes. When complete, the number of visits in the last week will be displayed under the area name.`;
+            confirmRequest();
+            return true;
+        }
+        
         tip.textContent = `Do you want to check all ${message.data.routes} routes in the sub-areas under ${area}?`;
         tip.parentElement.insertAdjacentElement("afterend", button);
-
+        
         return true;
     }
 
     // Message from area_content when all route visits have been received
     if (message.type === "area-complete") {
-        tip.innerHTML = `${area} has been visited <strong>${message.data}</strong> time` + (message.data == 1 ? "" : "s") + " in the last week.";
+        tip.innerHTML = `${message.data.area} has been visited <strong>${message.data.visits}</strong> time` + (message.data.visits == 1 ? "" : "s") + " in the last week.";
         return true;
     }
 
@@ -62,7 +74,9 @@ async function handlePopupMessages(message) {
 
 // Callback function for the continue button used for high level area pages
 function confirmRequest() {
-    button.parentElement.removeChild(button);
+    if (button.parentElement) {
+        button.parentElement.removeChild(button);
+    }
     tip.innerHTML = "Fetching recent visits in the background. Large areas may take several minutes to complete.";
     sendMessage("high-level-stats-request");
 }
@@ -82,4 +96,17 @@ function errorMessage() {
 Recent ticks are automatically shown when browsing route pages.";
 
     return false;
+}
+
+function closeOffscreenDocument() {
+    console.warn("Closing offscreen document.");
+
+    chrome.runtime.sendMessage({
+        type: "close-offscreen",
+        target: "background"
+    });
+
+    sendMessage("cancel");
+
+    window.close();
 }

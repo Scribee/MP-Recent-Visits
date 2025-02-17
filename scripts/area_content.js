@@ -2,20 +2,54 @@ chrome.runtime.onMessage.addListener(handleAreaContentMessages);
 
 let badge;
 let visits = 0;
-let areaHeader;
-let areaName = "";
 let routeCount = 0;
 let routesChecked = 0;
 let lastCount = 0;
+let areaName = "";
+let canceled = false; // TODO transition to Promise based interlocks
 
 // Receive messages from the popup script
 async function handleAreaContentMessages(message) {
-    // Create an iframe with the provided url
+    // Receive message from popup when extension icon is clicked
     if (message === "stats-request") {
-        console.log("Area request message received");
-        routesChecked = 0;
-        getAreaInfo();
+        // Ignore requests if one has already started or completed
+        if (badge && !canceled) {
+            chrome.runtime.sendMessage({
+                type: "area-complete",
+                target: "popup",
+                data: {visits: visits, area: areaName}
+            });
 
+            return false;
+        }
+
+        //console.log("Area request message received");
+        routesChecked = 0; // resent in case the user requests the current page be recalculated without refreshing
+        canceled = false;
+
+        // Try to get the "12 Total Climbs" element above the pie chart
+        const routeInfo = document.querySelector("div#climb-area-page div#route-count-container h2");
+
+        if (!routeInfo) {
+            console.warn("Number of routes on high level area page missing.");
+            return false;
+        }
+
+        // Extract the number of routes in the area
+        routeCount = parseInt(routeInfo.textContent.split(" ")[0]);
+
+        // Try to get the area name from the left sidebar above the child page list
+        const areaHeader = document.querySelector("div#climb-area-page div.mp-sidebar h3");
+
+        // If no area header appears on the left sidebar, the area has no children
+        if (!areaHeader) {
+            console.log("Empty area.");
+            return true;
+        }
+
+        areaName = areaHeader.textContent.split(" ").slice(2).join(" ");
+
+        // Try to get the table of child route links
         const routeList = document.querySelector("table#left-nav-route-table tbody");
         if (routeList) {
             const routeLinks = routeList.querySelectorAll("td a:first-child"); // ignores remove todo links
@@ -26,8 +60,8 @@ async function handleAreaContentMessages(message) {
                 data: {routes: routeCount, area: areaName}
             });
 
-            let i = 0;
-
+            let i = 0; // will be used to generate unique iframe ids
+            // Load each child route in an offscreen iframe
             routeLinks.forEach(function (link) {
                 let url = link.href.split("/"); // generate the url for the stats of the current route
                 url.splice(4, 0, "stats");
@@ -42,17 +76,14 @@ async function handleAreaContentMessages(message) {
                 i++;
             });
 
-            addBadge();
+            addBadge(); // display "Fetching recent visits..."
             return true;
         }
 
-        if (!areaHeader) {
-            console.log("Empty area.");
-            return true;
-        }
-
+        // If the route table was not found, this must be a high level area page with sub area children, so this check is likely redundant
         if (areaHeader.textContent.startsWith("Areas in")) {
             //console.log("High level area page detected with", routeCount, "child routes.");
+            // Send a warning message to the popup that fetching recent visits on all children is expensive
             chrome.runtime.sendMessage({
                 type: "area-warn",
                 target: "popup",
@@ -62,61 +93,87 @@ async function handleAreaContentMessages(message) {
             return true;
         }
 
+        console.warn("Unknown error handling stats-request message in area_content.");
         return false;
     }
 
+    // Receive message from popup when the user clicks the "Continue" button for a high level area page
     if (message === "high-level-stats-request") {
+        routesChecked = 0;
+        canceled = false;
         openChildAreas();
 
         addBadge();
         return true;
     }
 
+    // Receive message from popup when the user clicks the cancel all requests button
+    if (message === "cancel") {
+        canceled = true;
+
+        // Preempt the timeout watchdog display when we know it will time out
+        if (routesChecked < routeCount) {
+            badge.textContent = "Request timed out.";
+        }
+        return true;
+    }
+
+    // When any other message is received, assume it to be a stats response from a child route
     routesChecked++;
     console.log("Area content script received message:", message, "Progress:", routesChecked, "/", routeCount);
 
-        // Start the timeout watchdog when the first route is received
+    // Start the timeout watchdog when the first route is received
     if (routesChecked == 1) {
         lastCount = routesChecked;
         setTimeout(sendTimedOut, 10000);
     }
 
+    // Only extract the visits from the message for now, counting unticked routes as 0
     let ticks = Math.max(parseInt(message.split(",")[0]), 0);
     visits += ticks;
-    badge.textContent = `${visits} visits in the last week.`;
+    badge.textContent = `${visits} visits in the last week.`; // update display
 
+    // If we haven't heard from all routes yet, display a progress indicator
     if (routesChecked < routeCount) {
         badge.textContent += ` (${routesChecked}/${routeCount})`;
     }
     else {
+        canceled = false; // correct the rare case when the timeout watchdog activates but the messages get receieved later
+
+        // Tell the popup when all route responses have been received
         chrome.runtime.sendMessage({
             type: "area-complete",
             target: "popup",
-            data: visits
+            data: {visits: visits, area: areaName}
         });
     }
 
-    return false;
+    return true;
 }
 
+// Displays a loading message and adds the recent-visits p element below the area title if it does not exist
 function addBadge() {
     // Recalculate but don't add another element if the popup runs again
     if (!badge) {
         badge = document.createElement("p");
         badge.id = "recent-visits";
-        badge.textContent = "Fetching recent visits...";
         document.querySelector("div#climb-area-page h1").insertAdjacentElement("afterend", badge);
     }
+
+    badge.textContent = "Fetching recent visits...";
 }
 
+// 
 function openChildAreas() {
     //console.log("High level area stats request received.");
 
+    // Get the table of sub area links
     const subAreas = document.querySelectorAll("div#climb-area-page div.mp-sidebar div.lef-nav-row a");
 
-    let i = 0
+    let i = 0 // will be used to make unique frame ids
+    // Load each sub area page in an offscreen iframe
     subAreas.forEach(function(area) {
-        console.log(area.href);
+        //console.log(area.href);
         chrome.runtime.sendMessage({
             type: "open-sub-area",
             target: "background",
@@ -124,19 +181,6 @@ function openChildAreas() {
         });
         i++;
     });
-}
-
-function getAreaInfo() {
-    const routeInfo = document.querySelector("div#climb-area-page div#route-count-container h2");
-
-    if (!routeInfo) {
-        console.warn("Number of routes on high level area page missing.");
-        return false;
-    }
-
-    areaHeader = document.querySelector("div#climb-area-page div.mp-sidebar h3");
-    areaName = areaHeader.textContent.split(" ").slice(2).join(" ");
-    routeCount = routeInfo.textContent.split(" ")[0];
 }
 
 // Send the timeout message if the number of loaded routes has not changed
@@ -154,6 +198,7 @@ function sendTimedOut() {
         });
 
         badge.textContent = "Request timed out.";
+        canceled = true;
     }
     else {
         // Restart the watchdog

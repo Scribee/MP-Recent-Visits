@@ -10,7 +10,7 @@ async function handleBackgroundMessages(message, sender) {
     if (message.type === "iframe-response") {
         //console.log("Stats message received. Last tick: ", message.data.lastVisit);
 
-        // Tell the offscreen page it can remove the iframe
+        // Tell the offscreen page it can remove the route stats iframe
         chrome.runtime.sendMessage({
             type: "close-frame-request",
             target: "offscreen",
@@ -31,7 +31,7 @@ async function handleBackgroundMessages(message, sender) {
             text += `${message.data.visits} visits in the last week.`;
         }
         
-        // Send text to display to the content script
+        // Send text to display to the starting content script
         chrome.tabs.sendMessage(parseInt(message.data.tab.split("-")[0]), text);
         
         return true;
@@ -55,7 +55,7 @@ async function handleBackgroundMessages(message, sender) {
     if (message.type === "open-sub-area") {
         await setupOffscreenPage();
 
-        console.log("Sending message to offscreen for sub area iframe");
+        //console.log("Sending message to offscreen for sub area iframe");
         // Pass the url and source tab id to the offscreen document
         chrome.runtime.sendMessage({
             type: "stats-url-request",
@@ -68,13 +68,26 @@ async function handleBackgroundMessages(message, sender) {
 
     // Request from iframe area page to load stats page
     if (message.type === "send-area-route-to-offscreen-page") {
-        // Pass the url and provided original tab
+        // Pass the url and provided original tab (suffix already added)
         chrome.runtime.sendMessage({
             type: "stats-url-request",
             target: "offscreen",
             data: {url: message.data.url, tab: message.data.tab}
         });
 
+        return true;
+    }
+
+    // Request from popup to close offscreen document
+    if (message.type === "close-offscreen") {
+        try {
+            await chrome.offscreen.closeDocument();
+        }
+        catch (e) {
+
+        }
+
+        console.warn("Closed offscreen document due to popup request.");
         return true;
     }
 
@@ -94,8 +107,8 @@ async function setupOffscreenPage() {
     }
     catch (e) {
         //console.log("Offscreen document likely existed already");
-        console.log(e);
-        return false;
+        //console.log(e);
+        return true;
     }
 }
 

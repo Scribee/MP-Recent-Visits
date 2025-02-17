@@ -1,7 +1,7 @@
 {
     "name": "Mountain Project Recent Visits Extensions",
     "description": "Summarizes recent ticks in an area to help with estimating popularity or current conditions.",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "manifest_version": 3,
     "action": {
         "default_popup": "popup.html",
@@ -63,7 +63,8 @@
         "declarativeNetRequestWithHostAccess"
     ],
     "host_permissions": [
-        "https://www.mountainproject.com/"
+        "https://www.mountainproject.com/area",
+        "https://www.mountainproject.com/route"
     ],
     "background": {
         "service_worker": "scripts/background.js",

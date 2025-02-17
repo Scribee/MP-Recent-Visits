@@ -16,6 +16,8 @@ setTimeout(sendTickCount, 10000);
 
 // If the mutation added a strong element, extract the date and add it to the recentTicks array
 function getDate(mutation) {
+    observer.disconnect();
+
     mutation.forEach(function(record) {
         if (sent || !record.addedNodes) {
             return;
@@ -37,9 +39,8 @@ function getDate(mutation) {
 
         // Once a week old tick or 10 recent ticks are found, stop parsing
         if (Date.now() - date > 691200000 || recentTicks.length > 9) {
-            observer.disconnect();
-            sent = true;
             sendTickCount();
+            sent = true;
             return;
         }
     });
@@ -47,9 +48,14 @@ function getDate(mutation) {
 
 // Send the number of ticks, most recent tick date, and tab ID to the background script
 async function sendTickCount() {
+    if (sent) {
+        return false;
+    }
+
     chrome.runtime.sendMessage({
         type: "iframe-response",
         target: "background",
         data: {visits: recentTicks.length - 1, lastVisit: recentTicks[recentTicks.length - 1], tab: window.name}
     });
+    return true;
 }

@@ -1,7 +1,7 @@
 {
     "name": "Mountain Project Recent Visits Extensions",
     "description": "Summarizes recent ticks in an area to help with estimating popularity or current conditions.",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "manifest_version": 3,
     "action": {
         "default_popup": "popup.html",
@@ -45,6 +45,16 @@
             "matches": [
                 "https://www.mountainproject.com/area/*"
             ],
+            "run_at": "document_end"
+        },
+        {
+            "js": [
+                "scripts/area_iframe_content.js"
+            ],
+            "matches": [
+                "https://www.mountainproject.com/area/*"
+            ],
+            "all_frames": true,
             "run_at": "document_end"
         }
     ],

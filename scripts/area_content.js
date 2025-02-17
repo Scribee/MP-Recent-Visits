@@ -6,12 +6,14 @@ let areaHeader;
 let areaName = "";
 let routeCount = 0;
 let routesChecked = 0;
+let lastCount = 0;
 
 // Receive messages from the popup script
 async function handleAreaContentMessages(message) {
     // Create an iframe with the provided url
     if (message === "stats-request") {
         console.log("Area request message received");
+        routesChecked = 0;
         getAreaInfo();
 
         const routeList = document.querySelector("table#left-nav-route-table tbody");
@@ -50,11 +52,11 @@ async function handleAreaContentMessages(message) {
         }
 
         if (areaHeader.textContent.startsWith("Areas in")) {
-            console.log("High level area page detected with", routeCount, "child routes.");
+            //console.log("High level area page detected with", routeCount, "child routes.");
             chrome.runtime.sendMessage({
-                type: "popup-warn",
+                type: "area-warn",
                 target: "popup",
-                data: {routes: routeCount, name: areaName}
+                data: {routes: routeCount, area: areaName}
             });
 
             return true;
@@ -72,12 +74,26 @@ async function handleAreaContentMessages(message) {
 
     routesChecked++;
     console.log("Area content script received message:", message, "Progress:", routesChecked, "/", routeCount);
+
+        // Start the timeout watchdog when the first route is received
+    if (routesChecked == 1) {
+        lastCount = routesChecked;
+        setTimeout(sendTimedOut, 10000);
+    }
+
     let ticks = Math.max(parseInt(message.split(",")[0]), 0);
     visits += ticks;
     badge.textContent = `${visits} visits in the last week.`;
 
     if (routesChecked < routeCount) {
         badge.textContent += ` (${routesChecked}/${routeCount})`;
+    }
+    else {
+        chrome.runtime.sendMessage({
+            type: "area-complete",
+            target: "popup",
+            data: visits
+        });
     }
 
     return false;
@@ -94,12 +110,19 @@ function addBadge() {
 }
 
 function openChildAreas() {
-    console.log("High level area stats request received.");
+    //console.log("High level area stats request received.");
 
     const subAreas = document.querySelectorAll("div#climb-area-page div.mp-sidebar div.lef-nav-row a");
 
+    let i = 0
     subAreas.forEach(function(area) {
         console.log(area.href);
+        chrome.runtime.sendMessage({
+            type: "open-sub-area",
+            target: "background",
+            data: {url: area.href, index: i}
+        });
+        i++;
     });
 }
 
@@ -114,4 +137,27 @@ function getAreaInfo() {
     areaHeader = document.querySelector("div#climb-area-page div.mp-sidebar h3");
     areaName = areaHeader.textContent.split(" ").slice(2).join(" ");
     routeCount = routeInfo.textContent.split(" ")[0];
+}
+
+// Send the timeout message if the number of loaded routes has not changed
+function sendTimedOut() {
+    // If all requested routes were received, do nothing
+    if (routesChecked >= routeCount) {
+        return;
+    }
+
+    // If no more routes have been received since the last call, send the timeout message
+    if (lastCount == routesChecked) {
+        chrome.runtime.sendMessage({
+            type: "area-timed-out",
+            target: "popup"
+        });
+
+        badge.textContent = "Request timed out.";
+    }
+    else {
+        // Restart the watchdog
+        lastCount = routesChecked;
+        setTimeout(sendTimedOut, 10000);
+    }
 }

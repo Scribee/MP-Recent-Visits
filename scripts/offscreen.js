@@ -8,13 +8,13 @@ async function handleOffscreenMessages(message) {
     
     // Remove the iframe named with the provided tab id
     if (message.type === "close-frame-request") {
-        //console.log("Closing frame with name: ", message.data);
+        console.log("Closing frame with name:", message.data);
         const stats_page = document.querySelector(`iframe#stats-page-target-${message.data}`);
         if (!stats_page) {
-            console.log("Target iframe not found. Name:", message.data);
+            console.warn("Target iframe not found. Name:", message.data);
             return false;
         }
-        
+
         stats_page.parentElement.removeChild(stats_page);
 
         return true;

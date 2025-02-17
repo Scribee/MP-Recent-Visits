@@ -39,18 +39,7 @@ async function handleBackgroundMessages(message, sender) {
 
     // URL from content script to be opened on the offscreen page
     if (message.type === "send-to-offscreen-page") {
-        // Create the offscreen page if it does not exist
-        try {
-            await chrome.offscreen.createDocument({
-                url: "stats_pages.html",
-                reasons: ["DOM_SCRAPING"],
-                justification: "Opens route stats pages to extract tick dates.",
-            });        
-        }
-        catch (e) {
-            //console.log("Offscreen document likely existed already");
-            console.log(e);
-        }
+        await setupOffscreenPage();
 
         // Pass the url and source tab id to the offscreen document
         chrome.runtime.sendMessage({
@@ -62,8 +51,52 @@ async function handleBackgroundMessages(message, sender) {
         return true;
     }
 
+    // Sub area url from area script to open in an offscreen iframe
+    if (message.type === "open-sub-area") {
+        await setupOffscreenPage();
+
+        console.log("Sending message to offscreen for sub area iframe");
+        // Pass the url and source tab id to the offscreen document
+        chrome.runtime.sendMessage({
+            type: "stats-url-request",
+            target: "offscreen",
+            data: {url: message.data.url, tab: sender.tab.id + "-" + message.data.index}
+        });
+
+        return true;
+    }
+
+    // Request from iframe area page to load stats page
+    if (message.type === "send-area-route-to-offscreen-page") {
+        // Pass the url and provided original tab
+        chrome.runtime.sendMessage({
+            type: "stats-url-request",
+            target: "offscreen",
+            data: {url: message.data.url, tab: message.data.tab}
+        });
+
+        return true;
+    }
+
     console.warn("Unknown message type sent to background.js: ", message.type);
     return false;
+}
+
+async function setupOffscreenPage() {
+    // Create the offscreen page if it does not exist
+    try {
+        await chrome.offscreen.createDocument({
+            url: "stats_pages.html",
+            reasons: ["DOM_SCRAPING"],
+            justification: "Opens route stats pages to extract tick dates."
+        });
+        return true;
+    }
+    catch (e) {
+        //console.log("Offscreen document likely existed already");
+        console.log(e);
+        return false;
+    }
 }
 
 // X-Frame-Options removal

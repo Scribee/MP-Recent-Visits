@@ -6,6 +6,10 @@ let routeCount = 0;
 let routesChecked = 0;
 let lastCount = 0;
 let areaName = "";
+
+let subAreas = [];
+let i = 0; // will be used to make unique frame ids for sub areas
+
 let canceled = false; // TODO transition to Promise based interlocks
 
 // Receive messages from the popup script
@@ -52,29 +56,7 @@ async function handleAreaContentMessages(message) {
         // Try to get the table of child route links
         const routeList = document.querySelector("table#left-nav-route-table tbody");
         if (routeList) {
-            const routeLinks = routeList.querySelectorAll("td a:first-child"); // ignores remove todo links
-
-            chrome.runtime.sendMessage({
-                type: "area-request-header",
-                target: "popup",
-                data: {routes: routeCount, area: areaName}
-            });
-
-            let i = 0; // will be used to generate unique iframe ids
-            // Load each child route in an offscreen iframe
-            routeLinks.forEach(function (link) {
-                let url = link.href.split("/"); // generate the url for the stats of the current route
-                url.splice(4, 0, "stats");
-
-                console.log("Sending message to background to open:", url.join("/"));
-
-                chrome.runtime.sendMessage({
-                    type: "send-to-offscreen-page",
-                    target: "background",
-                    data: {url: url.join("/"), index: i}
-                });
-                i++;
-            });
+            openChildRoutes(routeList);
 
             addBadge(); // display "Fetching recent visits..."
             return true;
@@ -101,7 +83,7 @@ async function handleAreaContentMessages(message) {
     if (message === "high-level-stats-request") {
         routesChecked = 0;
         canceled = false;
-        openChildAreas();
+        prepareSubAreas();
 
         addBadge();
         return true;
@@ -115,6 +97,12 @@ async function handleAreaContentMessages(message) {
         if (routesChecked < routeCount) {
             badge.textContent = "Request timed out.";
         }
+        return true;
+    }
+
+    // Receive message from background that the last sub area is finished and the next one can be opened
+    if (message === "next-area") {
+        openNextSubArea();
         return true;
     }
 
@@ -138,7 +126,7 @@ async function handleAreaContentMessages(message) {
         badge.textContent += ` (${routesChecked}/${routeCount})`;
     }
     else {
-        canceled = false; // correct the rare case when the timeout watchdog activates but the messages get receieved later
+        canceled = false; // correct the case when the timeout watchdog activates but the messages get receieved later
 
         // Tell the popup when all route responses have been received
         chrome.runtime.sendMessage({
@@ -163,21 +151,55 @@ function addBadge() {
     badge.textContent = "Fetching recent visits...";
 }
 
-// 
-function openChildAreas() {
-    //console.log("High level area stats request received.");
-
+// Creates an array of the second level areas to be loaded 1 at a time
+function prepareSubAreas() {
     // Get the table of sub area links
-    const subAreas = document.querySelectorAll("div#climb-area-page div.mp-sidebar div.lef-nav-row a");
+    subAreas = document.querySelectorAll("div#climb-area-page div.mp-sidebar div.lef-nav-row a");
+    i = 0;
+    
+    openNextSubArea(); // open the first area
+}
 
-    let i = 0 // will be used to make unique frame ids
-    // Load each sub area page in an offscreen iframe
-    subAreas.forEach(function(area) {
-        //console.log(area.href);
+// Request that the next sub area in the list be loaded on the offscreen page
+function openNextSubArea() {
+    if (i === subAreas.length) {
+        return;
+    }
+
+    let area = subAreas[i];
+    //console.log("Opening sub area:", area.href);
+
+    chrome.runtime.sendMessage({
+        type: "open-sub-area",
+        target: "background",
+        data: {url: area.href, index: i}
+    });
+
+    i++;
+}
+
+// Requests that all child route stats pages be loaded in the offscreen document
+function openChildRoutes(routeList) {
+    const routeLinks = routeList.querySelectorAll("td a:first-child"); // ignores remove todo links
+
+    chrome.runtime.sendMessage({
+        type: "area-request-header",
+        target: "popup",
+        data: {routes: routeCount, area: areaName}
+    });
+
+    let i = 0; // will be used to generate unique iframe ids
+    // Load each child route in an offscreen iframe
+    routeLinks.forEach(function (link) {
+        let url = link.href.split("/"); // generate the url for the stats of the current route
+        url.splice(4, 0, "stats");
+
+        console.log("Sending message to background to open:", url.join("/"));
+
         chrome.runtime.sendMessage({
-            type: "open-sub-area",
+            type: "send-to-offscreen-page",
             target: "background",
-            data: {url: area.href, index: i}
+            data: {url: url.join("/"), index: i}
         });
         i++;
     });

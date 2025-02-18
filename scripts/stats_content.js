@@ -1,36 +1,36 @@
 // Do nothing if not in an iframe
-if (window.self === window.top) {
-
-}
-else {
+if (window.self !== window.top) {
     let recentTicks = [];
     let sent = false;
+    let observer;
 
     // Get initially empty stats table element
     const stats_table = document.querySelector("div#route-stats div.onx-stats-table div.col-lg-6 div");
 
-    let observer = new MutationObserver(getDate);
-    // Wait for table to be populated
-    observer.observe(stats_table, {
-        childList: true,
-        subtree: true
-    });
+    if (stats_table) {
+        observer = new MutationObserver(getDate);
+        // Wait for table to be populated
+        observer.observe(stats_table, {
+            childList: true,
+            subtree: true
+        });
 
-    // Consider making timeout adjustable for users with poor wifi
-    setTimeout(sendTickCount, 10000);
+        // Consider making timeout adjustable for users with poor wifi
+        setTimeout(sendTickCount, 10000);
+    }
+    else {
+        console.warn("Route found with no stats table:", window.name, document.URL);
+        sendTickCount();
+    }
 
     // If the mutation added a strong element, extract the date and add it to the recentTicks array
     function getDate(mutation) {
-        console.log("mutation");
         observer.disconnect();
 
         mutation.forEach(function(record) {
             if (sent || record.addedNodes.length == 0) {
-                console.log("skipping record,", sent);
                 return;
             }
-
-            console.log("record", record.addedNodes);
 
             // Try to get the element with the tick date
             let dateElement = record.addedNodes[0].querySelector("div.small div strong");

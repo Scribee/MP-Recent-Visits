@@ -12,7 +12,7 @@ async function handleBackgroundMessages(message, sender) {
 
         // Tell the offscreen page it can remove the route stats iframe
         chrome.runtime.sendMessage({
-            type: "close-frame-request",
+            type: "bg-close-frame-request",
             target: "offscreen",
             data: message.data.tab
         });
@@ -34,6 +34,20 @@ async function handleBackgroundMessages(message, sender) {
         // Send text to display to the starting content script
         chrome.tabs.sendMessage(parseInt(message.data.tab.split("-")[0]), text);
         
+        return true;
+    }
+
+    // Close the offscreen iframe with the provided name and allow the content script to load the next area
+    if (message.type === "area-close-frame-request") {
+        console.log("Background script sending next area message");
+        chrome.tabs.sendMessage(parseInt(message.data.split("-")[0]), "next-area");
+
+        chrome.runtime.sendMessage({
+            type: "bg-close-frame-request",
+            target: "offscreen",
+            data: message.data
+        });
+
         return true;
     }
 
@@ -68,6 +82,8 @@ async function handleBackgroundMessages(message, sender) {
 
     // Request from iframe area page to load stats page
     if (message.type === "send-area-route-to-offscreen-page") {
+        console.log("Opening offscreen iframe", message.data.url);
+
         // Pass the url and provided original tab (suffix already added)
         chrome.runtime.sendMessage({
             type: "stats-url-request",
@@ -91,7 +107,7 @@ async function handleBackgroundMessages(message, sender) {
         return true;
     }
 
-    console.warn("Unknown message type sent to background.js: ", message.type);
+    console.warn("Unknown message type sent to background.js:", message.type);
     return false;
 }
 

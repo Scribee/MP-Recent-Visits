@@ -1,8 +1,5 @@
 // Do nothing if not in an iframe
-if (window.self === window.top) {
-
-}
-else {
+if (window.self !== window.top) {
     //console.log("area_iframe_content running in iframe", window.name);
     const routeList = document.querySelector("table#left-nav-route-table tbody");
     // Check if the area contains routes
@@ -48,8 +45,8 @@ else {
 
     // Close the area frame after the child pages have been opened
     chrome.runtime.sendMessage({
-        type: "close-frame-request",
-        target: "offscreen",
+        type: "area-close-frame-request",
+        target: "background",
         data: window.name
     });
 }

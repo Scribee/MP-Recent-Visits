@@ -2,6 +2,7 @@ body {
     font-size: 75%;
     text-wrap: pretty;
     margin: 10px 10px 0px 10px;
+    height: fit-content;
 }
 
 em {
@@ -28,9 +29,8 @@ div#body-content {
     width: 400px;
 }
 
-div#footer-content 
-{
-    padding-top: 10px;
+div#footer-content {
+    padding: 10px 6px 10px 0px;
     display: inline-flex;
     justify-content: space-between;
     flex-direction: row;

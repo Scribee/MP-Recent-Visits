@@ -1,3 +1,4 @@
+// area_iframe_content.js
 // Do nothing if not in an iframe
 if (window.self !== window.top) {
     //console.log("area_iframe_content running in iframe", window.name);
@@ -27,6 +28,7 @@ if (window.self !== window.top) {
         // Check if the area has sub areas
         if (subAreas) {
             let i = 0;
+            // TODO Load areas 1 at a time like the highest level area script
             // Load all child areas in iframes
             subAreas.forEach(function(area) {
                 //console.log("Opening sub area", area.href, "id", window.name + "-" + i);

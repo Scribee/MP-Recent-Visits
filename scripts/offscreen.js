@@ -1,3 +1,4 @@
+// offscreen.js
 chrome.runtime.onMessage.addListener(handleOffscreenMessages);
 
 // Receive messages from the background script
@@ -29,7 +30,7 @@ async function handleOffscreenMessages(message) {
 }
 
 function closeFrame(message) {
-    console.log("Closing frame with name:", message.data);
+    //console.log("Closing frame with name:", message.data);
     const stats_page = document.querySelector(`iframe#stats-page-target-${message.data}`);
     if (!stats_page) {
         console.warn("Target iframe not found. Name:", message.data);

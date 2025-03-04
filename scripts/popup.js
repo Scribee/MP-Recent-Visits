@@ -1,3 +1,4 @@
+// popup.js
 chrome.runtime.onMessage.addListener(handlePopupMessages);
 
 // Create button element to display when confirmation is needed
@@ -39,7 +40,7 @@ async function handlePopupMessages(message) {
         console.log("Popup warning received. Area name:", area, " Routes:", message.data.routes);
 
         if (message.data.routes > 300) {
-            tip.textContent = "This area has too many routes to check. Please try again on the pages for the specific sub areas you're interested in.";
+            tip.textContent = "This area has too many routes to check. Please try again on the pages for the specific sub-areas you're interested in.";
             return false;
         }
 
@@ -98,8 +99,9 @@ Recent ticks are automatically shown when browsing route pages.";
     return false;
 }
 
+// Requests that the service worker close the offscreen document when the x button is clicked
 function closeOffscreenDocument() {
-    console.warn("Closing offscreen document.");
+    //console.log("Closing offscreen document.");
 
     chrome.runtime.sendMessage({
         type: "close-offscreen",

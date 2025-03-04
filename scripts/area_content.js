@@ -1,10 +1,11 @@
+// area_content.js
 chrome.runtime.onMessage.addListener(handleAreaContentMessages);
 
 let badge;
-let visits = 0;
-let routeCount = 0;
-let routesChecked = 0;
-let lastCount = 0;
+let visits;
+let routeCount;
+let routesChecked;
+let lastCount;
 let areaName = "";
 
 let subAreas = [];
@@ -18,6 +19,7 @@ async function handleAreaContentMessages(message) {
     if (message === "stats-request") {
         // Ignore requests if one has already started or completed
         if (badge && !canceled) {
+            // TODO add timeout message
             chrome.runtime.sendMessage({
                 type: "area-complete",
                 target: "popup",
@@ -27,11 +29,14 @@ async function handleAreaContentMessages(message) {
             return false;
         }
 
-        //console.log("Area request message received");
-        routesChecked = 0; // resent in case the user requests the current page be recalculated without refreshing
+        // Reset in case the user requests the current page be recalculated without refreshing
+        visits = 0;
+        routeCount = 0;
+        routesChecked = 0;
+        lastCount = 0;
         canceled = false;
 
-        // Try to get the "12 Total Climbs" element above the pie chart
+        // Try to get the "x Total Climbs" element above the pie chart
         const routeInfo = document.querySelector("div#climb-area-page div#route-count-container h2");
 
         if (!routeInfo) {
@@ -47,7 +52,7 @@ async function handleAreaContentMessages(message) {
 
         // If no area header appears on the left sidebar, the area has no children
         if (!areaHeader) {
-            console.log("Empty area.");
+            //console.log("Empty area.");
             return true;
         }
 
@@ -56,6 +61,7 @@ async function handleAreaContentMessages(message) {
         // Try to get the table of child route links
         const routeList = document.querySelector("table#left-nav-route-table tbody");
         if (routeList) {
+            // TODO correct bug where only the first child page is opened on the first request after offscreen page creation
             openChildRoutes(routeList);
 
             addBadge(); // display "Fetching recent visits..."
@@ -113,7 +119,7 @@ async function handleAreaContentMessages(message) {
     // Start the timeout watchdog when the first route is received
     if (routesChecked == 1) {
         lastCount = routesChecked;
-        setTimeout(sendTimedOut, 10000);
+        setTimeout(sendTimedOut, 20000); // TODO correct watchdog start times, fix timer
     }
 
     // Only extract the visits from the message for now, counting unticked routes as 0
@@ -180,7 +186,7 @@ function openNextSubArea() {
 
 // Requests that all child route stats pages be loaded in the offscreen document
 function openChildRoutes(routeList) {
-    const routeLinks = routeList.querySelectorAll("td a:first-child"); // ignores remove todo links
+    const routeLinks = routeList.querySelectorAll("td a:first-child"); // ignores "remove todo" links
 
     chrome.runtime.sendMessage({
         type: "area-request-header",

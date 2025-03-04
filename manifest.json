@@ -1,7 +1,7 @@
 {
-    "name": "Mountain Project Recent Visits Extensions",
-    "description": "Summarizes recent ticks in an area to help with estimating popularity or current conditions.",
-    "version": "0.1.3",
+    "name": "Mountain Project Recent Visits Extensions BETA",
+    "description": "Summarizes recent ticks in an area to help with estimating popularity or current conditions. THIS EXTENSION IS FOR BETA TESTING.",
+    "version": "0.2.0",
     "manifest_version": 3,
     "action": {
         "default_popup": "popup.html",

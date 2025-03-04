@@ -1,4 +1,9 @@
+// background.js
+
 chrome.runtime.onMessage.addListener(handleBackgroundMessages);
+self.addEventListener("activate", setupOffscreenPage);
+
+let offscreen = false;
 
 // Listen and respond to messages from the content, offscreen and iframe scripts
 async function handleBackgroundMessages(message, sender) {
@@ -39,7 +44,7 @@ async function handleBackgroundMessages(message, sender) {
 
     // Close the offscreen iframe with the provided name and allow the content script to load the next area
     if (message.type === "area-close-frame-request") {
-        console.log("Background script sending next area message");
+        //console.log("Background script sending next area message");
         chrome.tabs.sendMessage(parseInt(message.data.split("-")[0]), "next-area");
 
         chrome.runtime.sendMessage({
@@ -82,7 +87,7 @@ async function handleBackgroundMessages(message, sender) {
 
     // Request from iframe area page to load stats page
     if (message.type === "send-area-route-to-offscreen-page") {
-        console.log("Opening offscreen iframe", message.data.url);
+        //console.log("Opening offscreen iframe", message.data.url);
 
         // Pass the url and provided original tab (suffix already added)
         chrome.runtime.sendMessage({
@@ -98,12 +103,15 @@ async function handleBackgroundMessages(message, sender) {
     if (message.type === "close-offscreen") {
         try {
             await chrome.offscreen.closeDocument();
+            console.log("Closed offscreen document due to popup request.");
         }
         catch (e) {
-
+            console.error("Failed to close offscreen document.");
         }
 
-        console.warn("Closed offscreen document due to popup request.");
+        offscreen = false;
+        await setupOffscreenPage();
+
         return true;
     }
 
@@ -111,7 +119,12 @@ async function handleBackgroundMessages(message, sender) {
     return false;
 }
 
+// Creates the offscreen page if it does not already exist
 async function setupOffscreenPage() {
+    if (offscreen) {
+        return true;
+    }
+
     // Create the offscreen page if it does not exist
     try {
         await chrome.offscreen.createDocument({
@@ -119,16 +132,17 @@ async function setupOffscreenPage() {
             reasons: ["DOM_SCRAPING"],
             justification: "Opens route stats pages to extract tick dates."
         });
-        return true;
     }
     catch (e) {
-        //console.log("Offscreen document likely existed already");
-        //console.log(e);
-        return true;
+        console.warn(e);
     }
+
+    offscreen = true;
+    return true;
 }
 
-// X-Frame-Options removal
+// X-Frame-Options removal from wOxxOm
+// https://groups.google.com/a/chromium.org/g/chromium-extensions/c/UCJW6vKPM3g
 const iframeHosts = ["mountainproject.com"];
 
 chrome.runtime.onInstalled.addListener(() => {

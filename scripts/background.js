@@ -143,7 +143,7 @@ async function setupOffscreenPage() {
 
 // X-Frame-Options removal from wOxxOm
 // https://groups.google.com/a/chromium.org/g/chromium-extensions/c/UCJW6vKPM3g
-const iframeHosts = ["mountainproject.com"];
+const iframeHosts = ['www.mountainproject.com'];
 
 chrome.runtime.onInstalled.addListener(() => {
     const RULE = {

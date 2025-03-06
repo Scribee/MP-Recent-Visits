@@ -114,7 +114,7 @@ async function handleAreaContentMessages(message) {
 
     // When any other message is received, assume it to be a stats response from a child route
     routesChecked++;
-    console.log("Area content script received message:", message, "Progress:", routesChecked, "/", routeCount);
+    //console.log("Area content script received message:", message, "Progress:", routesChecked, "/", routeCount);
 
     // Start the timeout watchdog when the first route is received
     if (routesChecked == 1) {
@@ -200,7 +200,7 @@ function openChildRoutes(routeList) {
         let url = link.href.split("/"); // generate the url for the stats of the current route
         url.splice(4, 0, "stats");
 
-        console.log("Sending message to background to open:", url.join("/"));
+        //console.log("Sending message to background to open:", url.join("/"));
 
         chrome.runtime.sendMessage({
             type: "send-to-offscreen-page",

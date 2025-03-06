@@ -156,8 +156,7 @@ chrome.runtime.onInstalled.addListener(() => {
         action: {
             type: "modifyHeaders",
             responseHeaders: [
-                {header: "X-Frame-Options", operation: "remove"},
-                {header: "Frame-Options", operation: "remove"}
+                {header: "X-Frame-Options", operation: "remove"}
             ],
         },
     };

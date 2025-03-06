@@ -33,7 +33,7 @@ async function openStatsPage(path) {
 // Receive the final text from the background script
 async function handleRouteContentMessages(message) {
     if (message === "stats-request" || message === "high-level-stats-request") {
-        console.log("Route page received message for area script");
+        //console.log("Route page received message for area script");
 
         chrome.runtime.sendMessage({
             type: "route-response",

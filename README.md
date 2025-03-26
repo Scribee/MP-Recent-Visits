@@ -9,3 +9,7 @@ When browsing area pages, the extension does not perform any automatic visit cal
 
 
 To cancel the current request, click the extension icon to open the popup window, and click the red X button in the bottom right. In the event that an error occurs or internet connectivity is lost temporarily, the message "Request timed out." may appear below the area name. In most cases this can be resolved by refreshing the page and repeating the request.
+
+
+## Installation
+Find "Mountain Project Recent Visits Extension" on the [Chrome Web Store](https://chromewebstore.google.com/detail/lobdgcmhjfmbjlmaneannapjhpplnjob?utm_source=item-share-cb) and click the "Add to Chrome" button. To make it easier to check area recent visits, you can pin the extension icon to the toolbar by clicking the puzzle icon, then the pin icon next to the extension.

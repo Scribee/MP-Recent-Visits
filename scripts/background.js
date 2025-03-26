@@ -23,18 +23,24 @@ async function handleBackgroundMessages(message, sender) {
         });
 
         // Generate the message text to send
-        let text = `${message.data.visits},${message.data.lastVisit},`;
+        let text = `${message.data.visits};${message.data.lastVisit};`;
 
         if (message.data.visits == -1) {
             text += "No ticks found.";
         }
         else if (message.data.visits == 0) {
-            var lastDate = new Date(message.data.lastVisit).toLocaleDateString('en-us', {weekday:"short", year:"numeric", month:"short", day:"numeric"}) ;
+            var lastDate = new Date(message.data.lastVisit).toLocaleDateString('en-us', {weekday:"short", year:"numeric", month:"short", day:"numeric"});
             text += `Last visit ${lastDate}.`;
         }
         else {
-            text += `${message.data.visits} visits in the last week.`;
+            text += `${message.data.visits} visits in the last week.`; // TODO condition for 's'
         }
+
+        console.log(text);
+        //if (message.data.tds) {
+        message.data.rows.forEach((tr) => text += ";" + tr);
+
+        console.log(text);
         
         // Send text to display to the starting content script
         chrome.tabs.sendMessage(parseInt(message.data.tab.split("-")[0]), text);

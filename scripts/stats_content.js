@@ -1,6 +1,7 @@
 // stats_content.js
 // Do nothing if not in an iframe
 if (window.self !== window.top) {
+    let lastDate;
     let recentTicks = [];
     let sent = false;
     let observer;
@@ -8,7 +9,6 @@ if (window.self !== window.top) {
     // Get initially empty stats table element
     const stats_table = document.querySelector("div#route-stats div.onx-stats-table div.col-lg-6 div");
 
-    // TODO fix issue correctly by observing the outer element, waiting for the stats table to be inserted
     if (stats_table) {
         observer = new MutationObserver(getDate);
         // Wait for table to be populated
@@ -25,7 +25,7 @@ if (window.self !== window.top) {
         sendTickCount();
     }
 
-    // If the mutation added a strong element, extract the date and add it to the recentTicks array
+    // Check the added tr elements to extract the tick date, name and notes
     function getDate(mutation) {
         observer.disconnect();
         let future = false;
@@ -38,22 +38,39 @@ if (window.self !== window.top) {
             // Try to get the element with the tick date
             let dateElement = record.addedNodes[0].querySelector("div.small div strong");
 
+            // If the mutation was not a tr element for a tick, it is likely the tick count span element
             if (!dateElement) {
                 // If there are no ticks for this route, send the response immediately
-                if (record.addedNodes[0].textContent === "0") {
-                    sendTickCount();
-                    sent = true;
+                if (record.addedNodes[0].outerHTML.startsWith("<span class=\"small text-muted\">")) {
+                    if (record.addedNodes[0].textContent === "0") {
+                        sendTickCount();
+                        sent = true;
+                        return;
+                    }
+
+                    console.log(record.addedNodes[0].textContent, "total ticks");
                     return;
                 }
+                
+                console.warn("Unknown element observed in mutation." + record.addedNodes[0].outerHTML);
 
                 return;
+            }
+
+            // If the mutation added the td elements for a tick, extract the notes
+            let tick = dateElement.parentElement.textContent.split(/,(.*)/s)[1].slice(8, 100);
+            // Extract the tick author element
+            let name = record.addedNodes[0].querySelector("td.text-nowrap");
+            if (!name) {
+                console.error("Name td element not found");
             }
 
             let date = Date.parse(dateElement.textContent);
 
             // Read ticks not in the future
             if (Date.now() - date > 0) {
-                recentTicks.push(date); // add to array
+                lastDate = date;
+                recentTicks.push("<tr>" + name.outerHTML + "<td class=\"small\">" + dateElement.outerHTML + "</td><td id=\"tick-notes\" class=\"small\">" + tick + "</td></tr>"); // add to array
             }
 
             // Record that a future tick was found in case no past ticks are found
@@ -91,7 +108,7 @@ if (window.self !== window.top) {
         chrome.runtime.sendMessage({
             type: "iframe-response",
             target: "background",
-            data: {visits: recentTicks.length - 1, lastVisit: recentTicks[recentTicks.length - 1], tab: window.name}
+            data: {visits: recentTicks.length - 1, lastVisit: lastDate, rows: recentTicks, tab: window.name}
         });
 
         return true;
